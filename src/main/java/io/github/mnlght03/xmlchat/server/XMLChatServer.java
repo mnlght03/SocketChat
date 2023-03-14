@@ -1,7 +1,7 @@
 package io.github.mnlght03.xmlchat.server;
 
 import io.github.mnlght03.xmlchat.xmlhandler.XMLCommand;
-import io.github.mnlght03.xmlchat.xmlhandler.XMLChatSerializer;
+import io.github.mnlght03.xmlchat.xmlhandler.XMLSerializer;
 
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
@@ -96,7 +96,7 @@ public class XMLChatServer {
                     buffer.flip();
                 }
 
-                XMLCommand command = (XMLCommand) XMLChatSerializer.deserialize(new XMLCommand(), sb.toString());
+                XMLCommand command = (XMLCommand) XMLSerializer.deserialize(new XMLCommand(), sb.toString());
 
                 if (command.getName().equals("login")) login(channel, command.getName(), command.getType());
 

@@ -7,7 +7,7 @@ import io.github.mnlght03.xmlchat.xmlhandler.XMLUser;
 
 import java.util.List;
 
-public class XMLChatHandler {
+public class XMLHandler {
     public static XMLEvent createEventMessage(String name, String username, String message) {
         XMLEvent event = new XMLEvent();
 
