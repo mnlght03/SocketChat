@@ -10,7 +10,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
-public class XMLChatSerializer {
+public class XMLSerializer {
     public static Object deserialize(Object obj, String xml) throws IOException, JAXBException {
         JAXBContext jaxbContext = JAXBContext.newInstance(obj.getClass());
         Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
@@ -37,9 +37,9 @@ public class XMLChatSerializer {
         String xml = Files.readString(Paths.get("C:/Code/java/Socket_Chat", "src/main/java/io/github/mnlght03/xmlchat",
                 "xmlhandler/success.xml"));
         System.out.println(xml);
-        Object obj = XMLChatSerializer.deserialize(new XMLSuccess(), xml);
+        Object obj = XMLSerializer.deserialize(new XMLSuccess(), xml);
         System.out.println(obj);
-        String xmlSerialized = XMLChatSerializer.serialize(obj);
+        String xmlSerialized = XMLSerializer.serialize(obj);
         System.out.println(xmlSerialized);
     }
 }
