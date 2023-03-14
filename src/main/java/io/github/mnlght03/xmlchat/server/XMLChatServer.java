@@ -1,7 +1,7 @@
 package io.github.mnlght03.xmlchat.server;
 
-import io.github.mnlght03.xmlchat.xmlhandler.XMLCommand;
-import io.github.mnlght03.xmlchat.xmlhandler.XMLSerializer;
+import io.github.mnlght03.xmlchat.xmlserializer.XMLCommand;
+import io.github.mnlght03.xmlchat.xmlserializer.XMLSerializer;
 
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
