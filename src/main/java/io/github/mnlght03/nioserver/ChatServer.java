@@ -1,8 +1,9 @@
-package io.github.mnlght03.server;
+package io.github.mnlght03.nioserver;
 
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
@@ -10,7 +11,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class ChatServer {
@@ -91,14 +91,17 @@ public class ChatServer {
         try {
             SocketChannel channel = (SocketChannel) key.channel();
             ByteBuffer buffer = ByteBuffer.allocate(MAX_BUFFER_SIZE);
-            int bytesRead = channel.read(buffer);
+            int bytesRead;
+
+            try {
+                bytesRead = channel.read(buffer);
+            } catch (SocketException ex) {
+                notifyUserDisconnected(key);
+                return;
+            }
 
             if (bytesRead == -1) {
-                broadcast(channel, "User " + usernames.get(channel) + "(" + channel.socket().getRemoteSocketAddress() + ") disconnected\n");
-                usernames.remove(channel);
-                userSocketChannels.remove(channel);
-                channel.close();
-                key.cancel();
+                notifyUserDisconnected(key);
                 return;
             }
 
@@ -119,6 +122,19 @@ public class ChatServer {
             ex.printStackTrace();
         }
     }   // read()
+
+    private void notifyUserDisconnected(SelectionKey key) {
+        SocketChannel channel = (SocketChannel) key.channel();
+        broadcast(channel, "User " + usernames.get(channel) + "(" + channel.socket().getRemoteSocketAddress() + ") disconnected\n");
+        usernames.remove(channel);
+        userSocketChannels.remove(channel);
+        try {
+            channel.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        key.cancel();
+    }   // notifyUserDisconnect()
 
     private void broadcast(SocketChannel sender, String msg) {
         msg += "\n";
