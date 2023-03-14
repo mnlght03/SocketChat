@@ -1,10 +1,10 @@
-package io.github.mnlght03.xmlchat.server;
+package io.github.mnlght03.xmlchat.xmlhandler;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "error")
-public class Error {
+public class XMLError {
     private String message;
 
     public String getMessage() {

@@ -1,13 +1,13 @@
-package io.github.mnlght03.xmlchat.server;
+package io.github.mnlght03.xmlchat.xmlhandler;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "command")
-public class Command {
+public class XMLCommand {
     private String name;
-    private int session;
+    private String session;
     private String type;
     private String message;
 
@@ -20,12 +20,12 @@ public class Command {
         this.name = name;
     }
 
-    public void setSession(int session) {
+    public void setSession(String session) {
         this.session = session;
     }
 
     @XmlElement(name = "session")
-    public int getSession() {
+    public String getSession() {
         return session;
     }
 
