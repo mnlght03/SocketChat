@@ -1,11 +1,13 @@
 package io.github.mnlght03.xmlchat.server;
 
-import io.github.mnlght03.xmlchat.xmlserializer.XMLCommand;
-import io.github.mnlght03.xmlchat.xmlserializer.XMLSerializer;
+import io.github.mnlght03.xmlchat.xmlserializer.*;
 
+import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.UnmarshalException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -20,6 +22,8 @@ public class XMLChatServer {
     private InetSocketAddress address;
     private Set<SocketChannel> userChannels = new HashSet<>();
     private Map<SocketChannel, String> usernames = new HashMap<>();
+    private Map<SocketChannel, String> types = new HashMap<>();
+    private Map<SocketChannel, String> sessions = new HashMap<>();
     private Selector selector;
     private int MAX_BUFFER_SIZE = 1024;
 
@@ -61,6 +65,7 @@ public class XMLChatServer {
             }   // while (keys.hasNext())
 
         }   // while (true)
+
     }   // start()
 
     private void accept(SelectionKey key) {
@@ -85,6 +90,15 @@ public class XMLChatServer {
                 buffer.flip();
                 int readTotal = 0;
                 int msgSize = buffer.getInt();
+
+                if (msgSize > MAX_BUFFER_SIZE) {
+                    XMLError errorMessage = XMLHandler.createErrorMessage(
+                            "Message is too large. Max message size is "+ MAX_BUFFER_SIZE + " Bytes"
+                    );
+
+                    send(channel, XMLSerializer.serialize(errorMessage));
+                }
+
                 StringBuilder sb = new StringBuilder();
 
                 while (readTotal < msgSize && readBytes > 0) {
@@ -100,52 +114,160 @@ public class XMLChatServer {
 
                 if (command.getName().equals("login")) login(channel, command.getName(), command.getType());
 
-                else if (command.getName().equals("list")) listUsers(command.getSession());
+                else if (command.getName().equals("list")) listUsers(channel, command.getSession());
 
-                else if (command.getName().equals("message")) broadcast(channel, command.getMessage(), command.getSession());
+                else if (command.getName().equals("message")) broadcastMessage(channel, command.getMessage(), command.getSession());
 
                 else if (command.getName().equals("logout")) logout(key, command.getSession());
 
-                // else wrong command error
-
+                else {
+                    XMLError errorMessage = XMLHandler.createErrorMessage("Wrong command name");
+                    send(channel, XMLSerializer.serialize(errorMessage));
+                }
             }
 
             if (readBytes == -1) {
-                notifyUserDisconnected(key);
+                channel.close();
+                key.cancel();
             }
         } catch (SocketException ex) {
-            notifyUserDisconnected(key);
-        } catch (IOException ex) {
+            try {
+                key.channel().close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            key.cancel();
+        } catch (UnmarshalException ex) {
+            SocketChannel channel = (SocketChannel) key.channel();
+            XMLError errorMessage = XMLHandler.createErrorMessage("Invalid xml root element");
+
+            try {
+                send(channel, XMLSerializer.serialize(errorMessage));
+            } catch (IOException | JAXBException e) {
+                e.printStackTrace();
+            }
+        } catch (IOException | JAXBException ex) {
             ex.printStackTrace();
-        } catch (JAXBException ex) {
-            // error respond
         }
     }   // read()
 
-    private void login(SocketChannel channel, String username, String type) {
+    private void sendWrongSessionError(SocketChannel channel) {
+        XMLError errorMessage = XMLHandler.createErrorMessage("Provided session is not yours");
+        try {
+            send(channel, XMLSerializer.serialize(errorMessage));
+        } catch(IOException | JAXBException ex) {
+            ex.printStackTrace();
+        }
+    }   // sendWrongSessionError()
 
+    private void login(SocketChannel channel, String username, String type) {
+        if (usernames.containsValue(username)) {
+            XMLError errorMessage = XMLHandler.createErrorMessage("This username is already taken");
+
+            try {
+                send(channel, XMLSerializer.serialize(errorMessage));
+            } catch (IOException | JAXBException ex) {
+                ex.printStackTrace();
+            }
+
+            return;
+        }
+
+        usernames.put(channel, username);
+        types.put(channel, type);
+        sessions.put(channel, channel.socket().getRemoteSocketAddress().toString());
+        try {
+            XMLSuccess successMessage = XMLHandler.createSuccessMessage(sessions.get(channel), null);
+            String xml = XMLSerializer.serialize(successMessage);
+            send(channel, xml);
+
+            XMLEvent eventMessage = XMLHandler.createEventMessage("userlogin", username, null);
+            broadcast(channel, XMLSerializer.serialize(eventMessage));
+        } catch (JAXBException | IOException ex) {
+            ex.printStackTrace();
+        }
+    }   // login()
+
+    private void listUsers(SocketChannel channel, String session) {
+        if (sessions.get(channel) != session) {
+            sendWrongSessionError(channel);
+            return;
+        }
+
+        List<XMLUser> userList = new ArrayList<>();
+
+        userChannels.forEach(userChannel -> {
+            if (userChannel != channel) {
+                XMLUser user = new XMLUser();
+                user.setName(usernames.get(userChannel));
+                user.setType(types.get(userChannel));
+                userList.add(user);
+            }
+        });
+
+        XMLSuccess successMessage = XMLHandler.createSuccessMessage(null, userList);
+
+        try {
+            send(channel, XMLSerializer.serialize(successMessage));
+        } catch (IOException | JAXBException ex) {
+            ex.printStackTrace();
+        }
+    }   // listUsers()
+
+    private void broadcastMessage(SocketChannel channel, String message, String session) {
+        if (sessions.get(channel) != session) {
+            sendWrongSessionError(channel);
+            return;
+        }
+
+        XMLEvent eventMessage = XMLHandler.createEventMessage("message", usernames.get(channel), message);
+
+        try {
+            broadcast(channel, XMLSerializer.serialize(eventMessage));
+        } catch (IOException | JAXBException ex) {
+            ex.printStackTrace();
+        }
+    }   // broadcastMessage()
+
+    private void logout(SelectionKey key, String session) {
+        SocketChannel channel = (SocketChannel) key.channel();
+
+        if (sessions.get(channel) != session) {
+            sendWrongSessionError(channel);
+            return;
+        }
+        try {
+            XMLSuccess successMessage = XMLHandler.createSuccessMessage(null, null);
+            send(channel, XMLSerializer.serialize(successMessage));
+
+            XMLEvent eventMessage = XMLHandler.createEventMessage("userlogout", usernames.get(channel), null);
+            broadcast(channel, XMLSerializer.serialize(eventMessage));
+
+            key.cancel();
+            channel.close();
+        } catch (IOException | JAXBException ex) {
+            ex.printStackTrace();
+        }
     }
 
-//    private void notifyUserDisconnected(SelectionKey key) {
-//        SocketChannel channel = (SocketChannel) key.channel();
-//        broadcast(channel, "User " + usernames.get(channel) + "(" + channel.socket().getRemoteSocketAddress() + ") disconnected\n");
-//        usernames.remove(channel);
-//        userChannels.remove(channel);
-//        try {
-//            channel.close();
-//        } catch (IOException ex) {
-//            ex.printStackTrace();
-//        }
-//        key.cancel();
-//    }   // notifyUserDisconnect()
 
-    private void broadcast(SocketChannel sender, String msg, String session) {
-        msg += "\n";
+    private void send(SocketChannel channel, String xml) {
+        ByteBuffer buffer = ByteBuffer.allocate(MAX_BUFFER_SIZE);
+        byte[] bytes = xml.getBytes();
+        buffer.putInt(bytes.length);
+        buffer.put(bytes);
+        buffer.flip();
+        try {
+            channel.write(buffer);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void broadcast(SocketChannel sender, String msg) {
         ByteBuffer buffer = ByteBuffer.allocate(MAX_BUFFER_SIZE);
         buffer.put(msg.getBytes());
         buffer.flip();
-
-        System.out.print("Broadcasting: " + msg);
 
         userChannels.forEach(userChannel -> {
             if (userChannel == sender) {
@@ -159,6 +281,7 @@ public class XMLChatServer {
                 ex.printStackTrace();
             }
         });
+
     }   // broadcast()
 
 }

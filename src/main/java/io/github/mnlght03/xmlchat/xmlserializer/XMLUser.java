@@ -6,7 +6,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "user")
 public class XMLUser {
     private String name;
-    private int type;
+    private String type;
 
     @XmlElement(name = "name")
     public String getName() {
@@ -18,11 +18,11 @@ public class XMLUser {
     }
 
     @XmlElement(name = "type")
-    public int getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(int type) {
+    public void setType(String type) {
         this.type = type;
     }
 }

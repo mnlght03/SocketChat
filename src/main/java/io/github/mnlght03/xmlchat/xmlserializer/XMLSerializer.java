@@ -35,11 +35,12 @@ public class XMLSerializer {
 //        System.out.println(xml);
 
         String xml = Files.readString(Paths.get("C:/Code/java/Socket_Chat", "src/main/java/io/github/mnlght03/xmlchat",
-                "xmlhandler/success.xml"));
+                "xmlserializer/event.xml"));
         System.out.println(xml);
         Object obj = XMLSerializer.deserialize(new XMLSuccess(), xml);
         System.out.println(obj);
         String xmlSerialized = XMLSerializer.serialize(obj);
         System.out.println(xmlSerialized);
+        System.out.println("WQKJHRQKJWHQKJ");
     }
 }
