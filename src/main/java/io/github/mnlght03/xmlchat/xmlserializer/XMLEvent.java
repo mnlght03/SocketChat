@@ -1,4 +1,4 @@
-package io.github.mnlght03.xmlchat.xmlhandler;
+package io.github.mnlght03.xmlchat.xmlserializer;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;

@@ -1,4 +1,4 @@
-package io.github.mnlght03.xmlchat.xmlhandler;
+package io.github.mnlght03.xmlchat.xmlserializer;
 
 import java.io.IOException;
 import java.io.StringReader;

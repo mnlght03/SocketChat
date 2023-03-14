@@ -1,9 +1,9 @@
 package io.github.mnlght03.xmlchat.server;
 
-import io.github.mnlght03.xmlchat.xmlhandler.XMLError;
-import io.github.mnlght03.xmlchat.xmlhandler.XMLEvent;
-import io.github.mnlght03.xmlchat.xmlhandler.XMLSuccess;
-import io.github.mnlght03.xmlchat.xmlhandler.XMLUser;
+import io.github.mnlght03.xmlchat.xmlserializer.XMLError;
+import io.github.mnlght03.xmlchat.xmlserializer.XMLEvent;
+import io.github.mnlght03.xmlchat.xmlserializer.XMLSuccess;
+import io.github.mnlght03.xmlchat.xmlserializer.XMLUser;
 
 import java.util.List;
 
